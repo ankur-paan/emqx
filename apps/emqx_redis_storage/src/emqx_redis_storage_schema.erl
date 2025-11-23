@@ -62,12 +62,12 @@ fields(redis) ->
         {pool_size, #{
             type => pos_integer(),
             default => ?DEFAULT_POOL_SIZE,
-            desc => "Connection pool size"
+            desc => "Connection pool size (default: 64)"
         }},
         {database, #{
             type => non_neg_integer(),
             default => ?DEFAULT_DATABASE,
-            desc => "Redis database number (not applicable for cluster mode)"
+            desc => "Redis database number (default: 0, not applicable for cluster mode)"
         }},
         {password, #{
             type => string(),
@@ -78,7 +78,7 @@ fields(redis) ->
         {connect_timeout, #{
             type => pos_integer(),
             default => ?DEFAULT_CONNECT_TIMEOUT,
-            desc => "Connection timeout in milliseconds"
+            desc => "Connection timeout in milliseconds (default: 5000)"
         }},
         {ssl, #{
             type => hoconsc:ref(?MODULE, ssl),
@@ -115,12 +115,12 @@ fields(persistence) ->
         {session_ttl, #{
             type => pos_integer(),
             default => 86400,
-            desc => "Session TTL in Redis (seconds)"
+            desc => "Session TTL in Redis (seconds, default: 86400 = 24 hours)"
         }},
         {message_ttl, #{
             type => pos_integer(),
             default => 86400,
-            desc => "Message TTL in Redis before archive (seconds)"
+            desc => "Message TTL in Redis before archive (seconds, default: 86400 = 24 hours)"
         }},
         {rdb_enabled, #{
             type => boolean(),

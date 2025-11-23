@@ -15,6 +15,9 @@
 -define(SYNC_ROUTES_KEY, <<"sync:routes">>).
 -define(ROUTE_WILDCARDS_KEY, <<"route:wildcards">>).
 
+%% Key separators
+-define(KEY_SEPARATOR, <<":">>).
+
 %% Default timeouts (milliseconds)
 -define(DEFAULT_CONNECT_TIMEOUT, 5000).
 -define(DEFAULT_POOL_SIZE, 64).

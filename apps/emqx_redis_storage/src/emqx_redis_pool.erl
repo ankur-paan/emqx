@@ -70,21 +70,27 @@ init([Config]) ->
     %% Build resource configuration for emqx_redis
     ResourceConfig = build_resource_config(RedisType, Servers, Database, Password, PoolSize, Config),
     
-    %% Create Redis resource using emqx_resource
-    case emqx_resource:create_local(
-        ?RESOURCE_ID,
-        <<"emqx_redis_storage">>,
-        emqx_redis,
-        ResourceConfig,
-        #{}
-    ) of
-        {ok, _} ->
-            {ok, #state{resource_id = ?RESOURCE_ID, config = Config}};
-        {error, {already_created, _}} ->
-            %% Resource already exists, that's ok
-            {ok, #state{resource_id = ?RESOURCE_ID, config = Config}};
-        {error, Reason} ->
-            {stop, Reason}
+    %% Verify emqx_redis module is available
+    case code:ensure_loaded(emqx_redis) of
+        {module, emqx_redis} ->
+            %% Create Redis resource using emqx_resource
+            case emqx_resource:create_local(
+                ?RESOURCE_ID,
+                <<"emqx_redis_storage">>,
+                emqx_redis,
+                ResourceConfig,
+                #{}
+            ) of
+                {ok, _} ->
+                    {ok, #state{resource_id = ?RESOURCE_ID, config = Config}};
+                {error, {already_created, _}} ->
+                    %% Resource already exists, that's ok
+                    {ok, #state{resource_id = ?RESOURCE_ID, config = Config}};
+                {error, Reason} ->
+                    {stop, Reason}
+            end;
+        {error, _} ->
+            {stop, {missing_dependency, emqx_redis}}
     end.
 
 handle_call(_Request, _From, State) ->

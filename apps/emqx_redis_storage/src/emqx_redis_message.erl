@@ -98,7 +98,7 @@ delete_messages(ClientId) ->
             
             Commands = 
                 [[<<"DEL">>, MsgKey] || MsgKey <- MsgKeys] ++
-                [[<<"ZREM">>, SyncKey | MsgKeys]] ++
+                [lists:flatten([<<"ZREM">>, SyncKey | MsgKeys])] ++
                 [[<<"DEL">>, QueueKey]],
             
             case execute_pipeline(Commands) of
@@ -114,7 +114,7 @@ delete_messages(ClientId) ->
 %%--------------------------------------------------------------------
 
 message_key(ClientId, MessageId) ->
-    <<?MSG_PREFIX, ClientId/binary, ":", MessageId/binary>>.
+    <<?MSG_PREFIX, ClientId/binary, ?KEY_SEPARATOR/binary, MessageId/binary>>.
 
 queue_key(ClientId) ->
     <<?MSGQ_PREFIX, ClientId/binary>>.
