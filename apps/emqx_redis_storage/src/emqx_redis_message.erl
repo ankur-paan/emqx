@@ -31,7 +31,7 @@ store_message(ClientId, Message) ->
     %% Build keys
     MsgKey = message_key(ClientId, MessageId),
     QueueKey = queue_key(ClientId),
-    SyncKey = <<?SYNC_MESSAGES_KEY>>,
+    SyncKey = ?SYNC_MESSAGES_KEY,
     
     %% Execute commands
     Commands = [
@@ -71,7 +71,7 @@ get_messages(ClientId, Offset, Limit) ->
 ack_message(ClientId, MessageId) ->
     MsgKey = message_key(ClientId, MessageId),
     QueueKey = queue_key(ClientId),
-    SyncKey = <<?SYNC_MESSAGES_KEY>>,
+    SyncKey = ?SYNC_MESSAGES_KEY,
     
     Commands = [
         [<<"DEL">>, MsgKey],
@@ -94,7 +94,7 @@ delete_messages(ClientId) ->
         {ok, MessageIds} ->
             %% Delete all messages and queue
             MsgKeys = [message_key(ClientId, MsgId) || MsgId <- MessageIds],
-            SyncKey = <<?SYNC_MESSAGES_KEY>>,
+            SyncKey = ?SYNC_MESSAGES_KEY,
             
             Commands = 
                 [[<<"DEL">>, MsgKey] || MsgKey <- MsgKeys] ++

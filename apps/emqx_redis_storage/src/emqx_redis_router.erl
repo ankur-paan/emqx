@@ -34,15 +34,15 @@ add_route(Topic, Node) ->
             %% Store in wildcard index
             Entry = <<Topic/binary, "|", NodeBin/binary>>,
             Commands = [
-                [<<"ZADD">>, <<?ROUTE_WILDCARDS_KEY>>, <<"0">>, Entry],
-                [<<"ZADD">>, <<?SYNC_ROUTES_KEY>>, integer_to_binary(Timestamp), Topic]
+                [<<"ZADD">>, ?ROUTE_WILDCARDS_KEY, <<"0">>, Entry],
+                [<<"ZADD">>, ?SYNC_ROUTES_KEY, integer_to_binary(Timestamp), Topic]
             ];
         false ->
             %% Store in exact match set
             RouteKey = route_key(Topic),
             Commands = [
                 [<<"SADD">>, RouteKey, NodeBin],
-                [<<"ZADD">>, <<?SYNC_ROUTES_KEY>>, integer_to_binary(Timestamp), Topic]
+                [<<"ZADD">>, ?SYNC_ROUTES_KEY, integer_to_binary(Timestamp), Topic]
             ]
     end,
     
@@ -60,7 +60,7 @@ delete_route(Topic, Node) ->
         true ->
             Entry = <<Topic/binary, "|", NodeBin/binary>>,
             Commands = [
-                [<<"ZREM">>, <<?ROUTE_WILDCARDS_KEY>>, Entry]
+                [<<"ZREM">>, ?ROUTE_WILDCARDS_KEY, Entry]
             ];
         false ->
             RouteKey = route_key(Topic),
@@ -100,7 +100,7 @@ match_routes(Topic) ->
 %% @doc List all topics
 -spec topics() -> {ok, [binary()]} | {error, term()}.
 topics() ->
-    case emqx_redis_pool:query([<<"ZRANGE">>, <<?SYNC_ROUTES_KEY>>, <<"0">>, <<"-1">>]) of
+    case emqx_redis_pool:query([<<"ZRANGE">>, ?SYNC_ROUTES_KEY, <<"0">>, <<"-1">>]) of
         {ok, Topics} -> {ok, Topics};
         {error, Reason} -> {error, Reason}
     end.
@@ -150,7 +150,7 @@ match_wildcard_routes(Topic) ->
 
 match_wildcards_erlang(Topic) ->
     %% Fallback: fetch all wildcard routes and match in Erlang
-    case emqx_redis_pool:query([<<"ZRANGE">>, <<?ROUTE_WILDCARDS_KEY>>, <<"0">>, <<"-1">>]) of
+    case emqx_redis_pool:query([<<"ZRANGE">>, ?ROUTE_WILDCARDS_KEY, <<"0">>, <<"-1">>]) of
         {ok, Entries} ->
             Nodes = lists:filtermap(
                 fun(Entry) ->

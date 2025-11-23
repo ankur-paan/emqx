@@ -6,14 +6,14 @@
 -define(EMQX_REDIS_STORAGE_HRL, true).
 
 %% Redis key prefixes
--define(SESSION_PREFIX, "session:").
--define(MSG_PREFIX, "msg:").
--define(MSGQ_PREFIX, "msgq:").
--define(ROUTE_PREFIX, "route:").
--define(SYNC_SESSIONS_KEY, "sync:sessions").
--define(SYNC_MESSAGES_KEY, "sync:messages").
--define(SYNC_ROUTES_KEY, "sync:routes").
--define(ROUTE_WILDCARDS_KEY, "route:wildcards").
+-define(SESSION_PREFIX, <<"session:">>).
+-define(MSG_PREFIX, <<"msg:">>).
+-define(MSGQ_PREFIX, <<"msgq:">>).
+-define(ROUTE_PREFIX, <<"route:">>).
+-define(SYNC_SESSIONS_KEY, <<"sync:sessions">>).
+-define(SYNC_MESSAGES_KEY, <<"sync:messages">>).
+-define(SYNC_ROUTES_KEY, <<"sync:routes">>).
+-define(ROUTE_WILDCARDS_KEY, <<"route:wildcards">>).
 
 %% Default timeouts (milliseconds)
 -define(DEFAULT_CONNECT_TIMEOUT, 5000).

@@ -45,7 +45,7 @@ save_session(ClientId, SessionData) ->
     Commands = [
         [<<"HMSET">>, Key | Fields],
         [<<"EXPIRE">>, Key, integer_to_binary(?DEFAULT_SESSION_TTL)],
-        [<<"ZADD">>, <<?SYNC_SESSIONS_KEY>>, integer_to_binary(Timestamp), ClientId]
+        [<<"ZADD">>, ?SYNC_SESSIONS_KEY, integer_to_binary(Timestamp), ClientId]
     ],
     
     case execute_pipeline(Commands) of
@@ -80,7 +80,7 @@ delete_session(ClientId) ->
     
     Commands = [
         [<<"DEL">>, Key],
-        [<<"ZREM">>, <<?SYNC_SESSIONS_KEY>>, ClientId]
+        [<<"ZREM">>, ?SYNC_SESSIONS_KEY, ClientId]
     ],
     
     case execute_pipeline(Commands) of
@@ -95,7 +95,7 @@ list_sessions(Limit, Offset) ->
     Start = Offset,
     Stop = Offset + Limit - 1,
     
-    case emqx_redis_pool:query([<<"ZRANGE">>, <<?SYNC_SESSIONS_KEY>>, 
+    case emqx_redis_pool:query([<<"ZRANGE">>, ?SYNC_SESSIONS_KEY, 
                                  integer_to_binary(Start), 
                                  integer_to_binary(Stop)]) of
         {ok, ClientIds} -> {ok, ClientIds};
@@ -105,7 +105,7 @@ list_sessions(Limit, Offset) ->
 %% @doc Count total active sessions
 -spec count_sessions() -> {ok, non_neg_integer()} | {error, term()}.
 count_sessions() ->
-    case emqx_redis_pool:query([<<"ZCARD">>, <<?SYNC_SESSIONS_KEY>>]) of
+    case emqx_redis_pool:query([<<"ZCARD">>, ?SYNC_SESSIONS_KEY]) of
         {ok, Count} when is_integer(Count) -> {ok, Count};
         {ok, Count} when is_binary(Count) -> {ok, binary_to_integer(Count)};
         {error, Reason} -> {error, Reason}
