@@ -46,7 +46,7 @@ t_start_stop(_Config) ->
     Config = #{
         pool_size => 8,
         redis_type => single,
-        servers => ?REDIS_HOST ++ ":" ++ integer_to_list(?REDIS_PORT),
+        servers => list_to_binary(?REDIS_HOST ++ ":" ++ integer_to_list(?REDIS_PORT)),
         database => 0
     },
     
@@ -62,7 +62,7 @@ t_query(_Config) ->
     Config = #{
         pool_size => 8,
         redis_type => single,
-        servers => ?REDIS_HOST ++ ":" ++ integer_to_list(?REDIS_PORT),
+        servers => list_to_binary(?REDIS_HOST ++ ":" ++ integer_to_list(?REDIS_PORT)),
         database => 0
     },
     

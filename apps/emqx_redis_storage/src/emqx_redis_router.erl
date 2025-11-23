@@ -205,7 +205,7 @@ for i, entry in ipairs(wildcards) do
         
         -- Convert MQTT wildcard to Lua pattern
         local lua_pattern = pattern
-        lua_pattern = string.gsub(lua_pattern, '+', '[^/]+')
+        lua_pattern = string.gsub(lua_pattern, '%+', '[^/]+')
         lua_pattern = string.gsub(lua_pattern, '#', '.*')
         lua_pattern = '^' .. lua_pattern .. '$'
         

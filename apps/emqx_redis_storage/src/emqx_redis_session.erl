@@ -120,8 +120,8 @@ session_key(ClientId) ->
 
 execute_pipeline(Commands) ->
     %% Execute multiple commands
-    %% For now, execute them sequentially
-    %% TODO: Use Redis pipeline for better performance
+    %% TODO: Use Redis MULTI/EXEC or proper pipelining for better performance
+    %% Current implementation executes commands sequentially which adds latency
     Results = lists:map(
         fun(Cmd) ->
             emqx_redis_pool:query(Cmd)
