@@ -98,7 +98,7 @@ delete_messages(ClientId) ->
             
             Commands = 
                 [[<<"DEL">>, MsgKey] || MsgKey <- MsgKeys] ++
-                [[<<"ZREM">>, SyncKey] ++ MsgKeys] ++
+                [[<<"ZREM">>, SyncKey | MsgKeys]] ++
                 [[<<"DEL">>, QueueKey]],
             
             case execute_pipeline(Commands) of
