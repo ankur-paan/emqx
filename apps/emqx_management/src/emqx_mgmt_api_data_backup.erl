@@ -22,6 +22,13 @@
     data_file_by_name/2
 ]).
 
+%% Helper functions for use by other APIs
+-export([
+    core_node/1,
+    format_import_errors/2,
+    upload_multipart_file/1
+]).
+
 %% Smoke test
 -export([
     check_desc/0
@@ -312,6 +319,15 @@ core_node(FileNode) ->
                 replicant ->
                     mria_membership:coordinator()
             end
+    end.
+
+upload_multipart_file(File) ->
+    [{Filename, FileContent} | _] = maps:to_list(maps:without([type], File)),
+    case emqx_mgmt_data_backup:upload(Filename, FileContent) of
+        ok ->
+            {204};
+        {error, Reason} ->
+            {400, #{code => 'BAD_REQUEST', message => emqx_mgmt_data_backup:format_error(Reason)}}
     end.
 
 data_files(post, #{body := #{<<"filename">> := #{type := _} = File}}) ->

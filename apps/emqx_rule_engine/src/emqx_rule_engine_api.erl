@@ -30,7 +30,10 @@
     '/rules/:id'/2,
     '/rules/:id/test'/2,
     '/rules/:id/metrics'/2,
-    '/rules/:id/metrics/reset'/2
+    '/rules/:id/metrics/reset'/2,
+    '/rule_engine/export'/2,
+    '/rule_engine/import/upload'/2,
+    '/rule_engine/import'/2
 ]).
 
 %% minirest filter callback
@@ -164,7 +167,10 @@ paths() ->
         "/rules/:id",
         "/rules/:id/test",
         "/rules/:id/metrics",
-        "/rules/:id/metrics/reset"
+        "/rules/:id/metrics/reset",
+        "/rule_engine/export",
+        "/rule_engine/import/upload",
+        "/rule_engine/import"
     ].
 
 error_schema(Code, Message) when is_atom(Code) ->
@@ -364,6 +370,52 @@ schema("/rule_engine") ->
             responses => #{
                 200 => rule_engine_schema(),
                 400 => error_schema('BAD_REQUEST', ?DESC("invalid_request"))
+            }
+        }
+    };
+schema("/rule_engine/export") ->
+    #{
+        'operationId' => '/rule_engine/export',
+        post => #{
+            tags => [<<"rules">>],
+            description => ?DESC("export_rules"),
+            parameters => [ns_qs_param()],
+            responses => #{
+                200 => mk(
+                    hoconsc:ref(emqx_mgmt_api_data_backup, backup_file_info),
+                    #{desc => ?DESC("export_success")}
+                ),
+                500 => error_schema('INTERNAL_ERROR', ?DESC("export_error"))
+            }
+        }
+    };
+schema("/rule_engine/import/upload") ->
+    #{
+        'operationId' => '/rule_engine/import/upload',
+        post => #{
+            tags => [<<"rules">>],
+            description => ?DESC("upload_rules_file"),
+            'requestBody' => emqx_dashboard_swagger:file_schema(filename),
+            responses => #{
+                204 => <<"No Content">>,
+                400 => error_schema('BAD_REQUEST', ?DESC("bad_rules_file"))
+            }
+        }
+    };
+schema("/rule_engine/import") ->
+    #{
+        'operationId' => '/rule_engine/import',
+        post => #{
+            tags => [<<"rules">>],
+            description => ?DESC("import_rules"),
+            parameters => [ns_qs_param()],
+            'requestBody' => mk(
+                hoconsc:map(filename, binary()),
+                #{desc => ?DESC("import_request"), example => #{<<"filename">> => <<"rules-export.tar.gz">>}}
+            ),
+            responses => #{
+                204 => <<"No Content">>,
+                400 => error_schema('BAD_REQUEST', ?DESC("import_failed"))
             }
         }
     }.
@@ -590,6 +642,79 @@ only_global_qs_param() ->
         {error, Reason} ->
             {400, #{code => 'BAD_REQUEST', message => ?ERR_BADARGS(Reason)}}
     end.
+
+'/rule_engine/export'(post, Req) ->
+    Namespace0 = get_namespace(Req),
+    Namespace = case Namespace0 of
+        ?global_ns -> ?global_ns;
+        _ -> emqx_utils_conv:bin(Namespace0)
+    end,
+    Params0 = #{<<"root_keys">> => [<<"rule_engine">>]},
+    Params = emqx_utils_maps:put_if(Params0, <<"namespace">>, Namespace, is_binary(Namespace)),
+    case emqx_mgmt_data_backup:parse_export_request(Params) of
+        {ok, Opts} ->
+            case emqx_mgmt_data_backup:export(Opts) of
+                {ok, #{filename := Filename} = File} ->
+                    {200, File#{filename => filename:basename(Filename)}};
+                {error, Reason} ->
+                    Msg = iolist_to_binary([
+                        <<"Error exporting rules: ">>,
+                        emqx_utils_conv:bin(Reason)
+                    ]),
+                    {500, #{code => 'INTERNAL_ERROR', message => Msg}}
+            end;
+        {error, Reason} ->
+            Msg = iolist_to_binary([
+                <<"Error processing export request: ">>,
+                emqx_utils_conv:bin(Reason)
+            ]),
+            {500, #{code => 'INTERNAL_ERROR', message => Msg}}
+    end.
+
+'/rule_engine/import/upload'(post, #{body := #{<<"filename">> := #{type := _} = File}}) ->
+    emqx_mgmt_api_data_backup:upload_multipart_file(File);
+'/rule_engine/import/upload'(post, #{body := _}) ->
+    {400, #{code => 'BAD_REQUEST', message => <<"Missing filename">>}}.
+
+'/rule_engine/import'(post, #{body := #{<<"filename">> := Filename}} = Req) ->
+    Namespace0 = get_namespace(Req),
+    Namespace = case Namespace0 of
+        ?global_ns -> ?global_ns;
+        _ -> emqx_utils_conv:bin(Namespace0)
+    end,
+    %% Use the local node for import
+    FileNode = node(),
+    CoreNode = emqx_mgmt_api_data_backup:core_node(FileNode),
+    Opts = emqx_utils_maps:put_if(#{}, namespace, Namespace, is_binary(Namespace)),
+    Res = emqx_mgmt_data_backup_proto_v2:import_file(
+        CoreNode,
+        FileNode,
+        Filename,
+        Opts,
+        infinity
+    ),
+    case Res of
+        {ok, #{db_errors := DbErrs, config_errors := ConfErrs}} ->
+            case DbErrs =:= #{} andalso ConfErrs =:= #{} of
+                true ->
+                    {204};
+                false ->
+                    Msg = emqx_mgmt_api_data_backup:format_import_errors(DbErrs, ConfErrs),
+                    {400, #{code => 'BAD_REQUEST', message => Msg}}
+            end;
+        {badrpc, Reason} ->
+            {500, #{
+                code => 'SERVICE_UNAVAILABLE',
+                message => emqx_mgmt_data_backup:format_error(Reason)
+            }};
+        {error, Reason} ->
+            {400, #{
+                code => 'BAD_REQUEST',
+                message => emqx_mgmt_data_backup:format_error(Reason)
+            }}
+    end;
+'/rule_engine/import'(post, #{body := _}) ->
+    {400, #{code => 'BAD_REQUEST', message => <<"Missing filename">>}}.
 
 %%------------------------------------------------------------------------------
 %% Internal functions
