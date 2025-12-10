@@ -1133,7 +1133,7 @@ refine_api_schema(Schema, ReqMeta = #{path := Path, method := Method}) ->
     export_resource_type(Req, <<"actions">>).
 
 '/actions/import/upload'(post, #{body := #{<<"filename">> := #{type := _} = File}}) ->
-    upload_resource_file(File);
+    emqx_mgmt_api_data_backup:upload_multipart_file(File);
 '/actions/import/upload'(post, #{body := _}) ->
     {400, #{code => 'BAD_REQUEST', message => <<"Missing filename">>}}.
 
@@ -1144,7 +1144,7 @@ refine_api_schema(Schema, ReqMeta = #{path := Path, method := Method}) ->
     export_resource_type(Req, <<"sources">>).
 
 '/sources/import/upload'(post, #{body := #{<<"filename">> := #{type := _} = File}}) ->
-    upload_resource_file(File);
+    emqx_mgmt_api_data_backup:upload_multipart_file(File);
 '/sources/import/upload'(post, #{body := _}) ->
     {400, #{code => 'BAD_REQUEST', message => <<"Missing filename">>}}.
 
@@ -2003,15 +2003,6 @@ export_resource_type(Req, RootKey) ->
                 emqx_utils_conv:bin(Reason)
             ]),
             {500, #{code => 'INTERNAL_ERROR', message => Msg}}
-    end.
-
-upload_resource_file(File) ->
-    [{Filename, FileContent} | _] = maps:to_list(maps:without([type], File)),
-    case emqx_mgmt_data_backup:upload(Filename, FileContent) of
-        ok ->
-            {204};
-        {error, Reason} ->
-            {400, #{code => 'BAD_REQUEST', message => emqx_mgmt_data_backup:format_error(Reason)}}
     end.
 
 import_resource_type(#{body := #{<<"filename">> := Filename}} = Req) ->
