@@ -690,7 +690,7 @@ only_global_qs_param() ->
     end,
     %% Use the local node for import
     FileNode = node(),
-    CoreNode = core_node(FileNode),
+    CoreNode = emqx_mgmt_api_data_backup:core_node(FileNode),
     Opts = emqx_utils_maps:put_if(#{}, namespace, Namespace, is_binary(Namespace)),
     Res = emqx_mgmt_data_backup_proto_v2:import_file(
         CoreNode,
@@ -705,7 +705,7 @@ only_global_qs_param() ->
                 true ->
                     {204};
                 false ->
-                    Msg = format_import_errors(DbErrs, ConfErrs),
+                    Msg = emqx_mgmt_api_data_backup:format_import_errors(DbErrs, ConfErrs),
                     {400, #{code => 'BAD_REQUEST', message => Msg}}
             end;
         {badrpc, Reason} ->
@@ -742,32 +742,6 @@ encode_nested_error(RuleError, Reason) ->
         _ ->
             {RuleError, Reason}
     end.
-
-core_node(FileNode) ->
-    case mria_rlog:role(FileNode) of
-        core ->
-            FileNode;
-        replicant ->
-            case mria_rlog:role() of
-                core ->
-                    node();
-                replicant ->
-                    mria_membership:coordinator()
-            end
-    end.
-
-format_import_errors(DbErrs, ConfErrs) ->
-    DbErrs1 = emqx_mgmt_data_backup:format_db_errors(DbErrs),
-    ConfErrs1 = emqx_mgmt_data_backup:format_conf_errors(ConfErrs),
-    GlobalConfErrs = maps:get(?global_ns, ConfErrs1, <<"">>),
-    Msg0 = ConfErrs1#{
-        ?global_ns => [
-            DbErrs1,
-            GlobalConfErrs
-        ]
-    },
-    Msg1 = maps:map(fun(_Ns, IOData) -> iolist_to_binary(IOData) end, Msg0),
-    maps:filter(fun(_Ns, Text) -> Text /= <<"">> end, Msg1).
 
 mk_format_fn(Namespace) ->
     SummaryIndex =

@@ -22,6 +22,12 @@
     data_file_by_name/2
 ]).
 
+%% Helper functions for use by other APIs
+-export([
+    core_node/1,
+    format_import_errors/2
+]).
+
 %% Smoke test
 -export([
     check_desc/0

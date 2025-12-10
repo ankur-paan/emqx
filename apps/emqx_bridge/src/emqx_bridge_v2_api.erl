@@ -2021,7 +2021,7 @@ import_resource_type(#{body := #{<<"filename">> := Filename}} = Req) ->
         _ -> emqx_utils_conv:bin(Namespace0)
     end,
     FileNode = node(),
-    CoreNode = core_node_for_import(FileNode),
+    CoreNode = emqx_mgmt_api_data_backup:core_node(FileNode),
     Opts = emqx_utils_maps:put_if(#{}, namespace, Namespace, is_binary(Namespace)),
     Res = emqx_mgmt_data_backup_proto_v2:import_file(
         CoreNode,
@@ -2036,7 +2036,7 @@ import_resource_type(#{body := #{<<"filename">> := Filename}} = Req) ->
                 true ->
                     {204};
                 false ->
-                    Msg = format_import_errors_for_api(DbErrs, ConfErrs),
+                    Msg = emqx_mgmt_api_data_backup:format_import_errors(DbErrs, ConfErrs),
                     {400, #{code => 'BAD_REQUEST', message => Msg}}
             end;
         {badrpc, Reason} ->
@@ -2052,32 +2052,6 @@ import_resource_type(#{body := #{<<"filename">> := Filename}} = Req) ->
     end;
 import_resource_type(#{body := _}) ->
     {400, #{code => 'BAD_REQUEST', message => <<"Missing filename">>}}.
-
-core_node_for_import(FileNode) ->
-    case mria_rlog:role(FileNode) of
-        core ->
-            FileNode;
-        replicant ->
-            case mria_rlog:role() of
-                core ->
-                    node();
-                replicant ->
-                    mria_membership:coordinator()
-            end
-    end.
-
-format_import_errors_for_api(DbErrs, ConfErrs) ->
-    DbErrs1 = emqx_mgmt_data_backup:format_db_errors(DbErrs),
-    ConfErrs1 = emqx_mgmt_data_backup:format_conf_errors(ConfErrs),
-    GlobalConfErrs = maps:get(?global_ns, ConfErrs1, <<"">>),
-    Msg0 = ConfErrs1#{
-        ?global_ns => [
-            DbErrs1,
-            GlobalConfErrs
-        ]
-    },
-    Msg1 = maps:map(fun(_Ns, IOData) -> iolist_to_binary(IOData) end, Msg0),
-    maps:filter(fun(_Ns, Text) -> Text /= <<"">> end, Msg1).
 
 enable_func(true) -> enable;
 enable_func(false) -> disable.
